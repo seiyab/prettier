@@ -16,7 +16,12 @@ import {
   softline,
 } from "../document/builders.js";
 import { printDocToString } from "../document/printer.js";
-import { normalizeDoc, replaceEndOfLine } from "../document/utils.js";
+import {
+  cleanDoc,
+  getDocParts,
+  getDocType,
+  replaceEndOfLine,
+} from "../document/utils.js";
 import getMaxContinuousCount from "../utils/get-max-continuous-count.js";
 import getMinNotPresentContinuousCount from "../utils/get-min-not-present-continuous-count.js";
 import getPreferredQuote from "../utils/get-preferred-quote.js";
@@ -38,8 +43,11 @@ import {
   isAutolink,
   splitText,
 } from "./utils.js";
+import { printSentence } from "./print-sentence.js";
+import { DOC_TYPE_FILL } from "../document/constants.js";
 
 /**
+ * @typedef {import("../common/ast-path.js").default} AstPath
  * @typedef {import("../document/builders.js").Doc} Doc
  */
 
@@ -76,13 +84,11 @@ function genericPrint(path, options, print) {
       if (node.children.length === 0) {
         return "";
       }
-      return [normalizeDoc(printRoot(path, options, print)), hardline];
+      return [cleanDoc(printRoot(path, options, print)), hardline];
     case "paragraph":
-      return printChildren(path, options, print, {
-        postprocessor: fill,
-      });
+      return printParagraph(path, options, print);
     case "sentence":
-      return printChildren(path, options, print);
+      return printSentence(path, print);
     case "word": {
       let escapedValue = node.value
         .replaceAll("*", "\\*") // escape all `*`
@@ -840,6 +846,57 @@ function printLinkReference(node) {
 
 function printFootnoteReference(node) {
   return `[^${node.label}]`;
+}
+
+/**
+ * @param {AstPath} path
+ * @parama {*} options
+ * @param {*} print
+ * @returns {Doc}
+ */
+function printParagraph(path, options, print) {
+  /** @type {Doc[]} */
+  const parts = [""];
+
+  let pendingLines = [];
+
+  path.each(() => {
+    const result = print(path);
+    if (result !== false) {
+      if (parts.length > 0 && shouldPrePrintHardline(path)) {
+        pendingLines.push(hardline);
+
+        if (
+          shouldPrePrintDoubleHardline(path, options) ||
+          shouldPrePrintTripleHardline(path)
+        ) {
+          pendingLines.push(hardline);
+        }
+
+        if (shouldPrePrintTripleHardline(path)) {
+          pendingLines.push(hardline);
+        }
+      }
+      parts.push(pendingLines);
+      pendingLines = [];
+
+      const cleaned = cleanDoc(result);
+      switch (getDocType(cleaned)) {
+        case DOC_TYPE_FILL:
+          const docParts = getDocParts(cleaned).slice();
+          while (docParts.length > 1 && docParts.at(-1) === "") {
+            docParts.pop();
+            pendingLines.push(docParts.pop());
+          }
+          parts.push(...docParts);
+          break;
+        default:
+          parts.push(cleaned);
+      }
+    }
+  }, "children");
+
+  return fill(parts);
 }
 
 const printer = {
