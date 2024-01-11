@@ -115,13 +115,8 @@ fill.builder = fillBuilder;
 function fillBuilder() {
   const parts = [];
   let pendingDocs = [];
-
   function flush() {
-    if (pendingDocs.length === 1) {
-      parts.push(pendingDocs[0]);
-    } else {
-      parts.push(pendingDocs);
-    }
+    parts.push(pendingDocs);
     pendingDocs = [];
   }
 
@@ -134,6 +129,7 @@ function fillBuilder() {
       flush();
       pendingDocs = [];
       parts.push(doc);
+      return self;
     },
     build() {
       flush();

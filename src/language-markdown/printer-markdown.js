@@ -15,8 +15,9 @@ import {
   markAsRoot,
   softline,
 } from "../document/builders.js";
+import { DOC_TYPE_STRING } from "../document/constants.js";
 import { printDocToString } from "../document/printer.js";
-import { cleanDoc, replaceEndOfLine } from "../document/utils.js";
+import { cleanDoc, getDocType, replaceEndOfLine } from "../document/utils.js";
 import { flattenFill } from "../document/utils/flatten-fill.js";
 import getMaxContinuousCount from "../utils/get-max-continuous-count.js";
 import getMinNotPresentContinuousCount from "../utils/get-min-not-present-continuous-count.js";
@@ -56,16 +57,26 @@ function genericPrint(path, options, print) {
   const { node } = path;
 
   if (shouldRemainTheSameContent(path)) {
-    return splitText(
+    const builder = fill.builder();
+    const textsNodes = splitText(
       options.originalText.slice(
         node.position.start.offset,
         node.position.end.offset,
       ),
-    ).map((node) =>
-      node.type === "word"
-        ? node.value
-        : printWhitespace(path, node.value, options.proseWrap, true),
     );
+    for (const node of textsNodes) {
+      if (node.type === "word") {
+        builder.append(node.value);
+        continue;
+      }
+      const doc = printWhitespace(path, node.value, options.proseWrap, true);
+      if (getDocType(doc) === DOC_TYPE_STRING) {
+        builder.append(doc);
+        continue;
+      }
+      builder.appendLine(doc);
+    }
+    return builder.build();
   }
 
   switch (node.type) {
