@@ -13,10 +13,7 @@ import { getDocType } from "../document/utils.js";
  * @returns {Doc}
  */
 function printSentence(path, print) {
-  /** @type {Doc[]} */
-  const parts = [];
-  /** @type {Doc[]} */
-  let chunk = [];
+  const builder = fill.builder();
 
   path.each(() => {
     const { node } = path;
@@ -24,22 +21,19 @@ function printSentence(path, print) {
     switch (node.type) {
       case "whitespace":
         if (getDocType(doc) !== DOC_TYPE_STRING) {
-          parts.push(chunk);
-          chunk = [];
-          parts.push(print());
+          builder.appendLine(doc);
           break;
         }
       // fallthrough
       case "word":
-        chunk.push(doc);
+        builder.append(doc);
         break;
       default:
         throw new Error(`Unexpected node type: ${node.type}`);
     }
   }, "children");
-  parts.push(chunk);
 
-  return fill(parts);
+  return builder.build();
 }
 
 export { printSentence };

@@ -16,12 +16,8 @@ import {
   softline,
 } from "../document/builders.js";
 import { printDocToString } from "../document/printer.js";
-import {
-  cleanDoc,
-  getDocParts,
-  getDocType,
-  replaceEndOfLine,
-} from "../document/utils.js";
+import { cleanDoc, replaceEndOfLine } from "../document/utils.js";
+import { flattenFill } from "../document/utils/flatten-fill.js";
 import getMaxContinuousCount from "../utils/get-max-continuous-count.js";
 import getMinNotPresentContinuousCount from "../utils/get-min-not-present-continuous-count.js";
 import getPreferredQuote from "../utils/get-preferred-quote.js";
@@ -34,6 +30,7 @@ import getVisitorKeys from "./get-visitor-keys.js";
 import { locEnd, locStart } from "./loc.js";
 import { insertPragma } from "./pragma.js";
 import preprocess from "./print-preprocess.js";
+import { printSentence } from "./print-sentence.js";
 import { printWhitespace } from "./print-whitespace.js";
 import {
   getFencedCodeBlockValue,
@@ -43,8 +40,6 @@ import {
   isAutolink,
   splitText,
 } from "./utils.js";
-import { printSentence } from "./print-sentence.js";
-import { DOC_TYPE_FILL } from "../document/constants.js";
 
 /**
  * @typedef {import("../common/ast-path.js").default} AstPath
@@ -850,53 +845,39 @@ function printFootnoteReference(node) {
 
 /**
  * @param {AstPath} path
- * @parama {*} options
+ * @param {*} options
  * @param {*} print
  * @returns {Doc}
  */
 function printParagraph(path, options, print) {
-  /** @type {Doc[]} */
-  const parts = [""];
-
-  let pendingLines = [];
+  let isFirstPart = true;
+  const builder = fill.builder();
 
   path.each(() => {
     const result = print(path);
     if (result !== false) {
-      if (parts.length > 0 && shouldPrePrintHardline(path)) {
-        pendingLines.push(hardline);
+      if (!isFirstPart && shouldPrePrintHardline(path)) {
+        isFirstPart = false;
+        const lines = [hardline];
 
         if (
           shouldPrePrintDoubleHardline(path, options) ||
           shouldPrePrintTripleHardline(path)
         ) {
-          pendingLines.push(hardline);
+          lines.push(hardline);
         }
 
         if (shouldPrePrintTripleHardline(path)) {
-          pendingLines.push(hardline);
+          lines.push(hardline);
         }
+        builder.appendLine(lines);
       }
-      parts.push(pendingLines);
-      pendingLines = [];
 
-      const cleaned = cleanDoc(result);
-      switch (getDocType(cleaned)) {
-        case DOC_TYPE_FILL:
-          const docParts = getDocParts(cleaned).slice();
-          while (docParts.length > 1 && docParts.at(-1) === "") {
-            docParts.pop();
-            pendingLines.push(docParts.pop());
-          }
-          parts.push(...docParts);
-          break;
-        default:
-          parts.push(cleaned);
-      }
+      builder.append(result);
     }
   }, "children");
 
-  return fill(parts);
+  return flattenFill(builder.build());
 }
 
 const printer = {

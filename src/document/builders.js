@@ -110,6 +110,38 @@ function fill(parts) {
 
   return { type: DOC_TYPE_FILL, parts };
 }
+fill.builder = fillBuilder;
+
+function fillBuilder() {
+  const parts = [];
+  let pendingDocs = [];
+
+  function flush() {
+    if (pendingDocs.length === 1) {
+      parts.push(pendingDocs[0]);
+    } else {
+      parts.push(pendingDocs);
+    }
+    pendingDocs = [];
+  }
+
+  const self = {
+    append(doc) {
+      pendingDocs.push(doc);
+      return self;
+    },
+    appendLine(doc) {
+      flush();
+      pendingDocs = [];
+      parts.push(doc);
+    },
+    build() {
+      flush();
+      return fill(parts);
+    },
+  };
+  return self;
+}
 
 /**
  * @param {Doc} breakContents
