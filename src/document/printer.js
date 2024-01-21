@@ -18,17 +18,14 @@ import {
   DOC_TYPE_STRING,
   DOC_TYPE_TRIM,
 } from "./constants.js";
+import { createFits } from "./fits.js";
 import InvalidDocError from "./invalid-doc-error.js";
+import { MODE_BREAK, MODE_FLAT } from "./modes.js";
 import { getDocParts, getDocType, propagateBreaks } from "./utils.js";
 
 /** @typedef {typeof MODE_BREAK | typeof MODE_FLAT} Mode */
 /** @typedef {{ ind: any, doc: any, mode: Mode }} Command */
 /** @typedef {Record<symbol, Mode>} GroupModeMap */
-
-/** @type {unique symbol} */
-const MODE_BREAK = Symbol("MODE_BREAK");
-/** @type {unique symbol} */
-const MODE_FLAT = Symbol("MODE_FLAT");
 
 const CURSOR_PLACEHOLDER = Symbol("cursor");
 
@@ -193,115 +190,117 @@ function trim(out) {
  * @param {boolean} [mustBeFlat]
  * @returns {boolean}
  */
-function fits(
-  next,
-  restCommands,
-  width,
-  hasLineSuffix,
-  groupModeMap,
-  mustBeFlat,
-) {
-  if (width === Number.POSITIVE_INFINITY) {
-    return true;
-  }
-
-  let restIdx = restCommands.length;
-  /** @type {Array<Omit<Command, 'ind'>>} */
-  const cmds = [next];
-  // `out` is only used for width counting because `trim` requires to look
-  // backwards for space characters.
-  const out = [];
-  while (width >= 0) {
-    if (cmds.length === 0) {
-      if (restIdx === 0) {
-        return true;
-      }
-      cmds.push(restCommands[--restIdx]);
-
-      continue;
-    }
-
-    const { mode, doc } = cmds.pop();
-
-    switch (getDocType(doc)) {
-      case DOC_TYPE_STRING:
-        out.push(doc);
-        width -= getStringWidth(doc);
-        break;
-
-      case DOC_TYPE_ARRAY:
-      case DOC_TYPE_FILL: {
-        const parts = getDocParts(doc);
-        for (let i = parts.length - 1; i >= 0; i--) {
-          cmds.push({ mode, doc: parts[i] });
-        }
-        break;
-      }
-
-      case DOC_TYPE_INDENT:
-      case DOC_TYPE_ALIGN:
-      case DOC_TYPE_INDENT_IF_BREAK:
-      case DOC_TYPE_LABEL:
-        cmds.push({ mode, doc: doc.contents });
-        break;
-
-      case DOC_TYPE_TRIM:
-        width += trim(out);
-        break;
-
-      case DOC_TYPE_GROUP: {
-        if (mustBeFlat && doc.break) {
-          return false;
-        }
-        const groupMode = doc.break ? MODE_BREAK : mode;
-        // The most expanded state takes up the least space on the current line.
-        const contents =
-          doc.expandedStates && groupMode === MODE_BREAK
-            ? doc.expandedStates.at(-1)
-            : doc.contents;
-        cmds.push({ mode: groupMode, doc: contents });
-        break;
-      }
-
-      case DOC_TYPE_IF_BREAK: {
-        const groupMode = doc.groupId
-          ? groupModeMap[doc.groupId] || MODE_FLAT
-          : mode;
-        const contents =
-          groupMode === MODE_BREAK ? doc.breakContents : doc.flatContents;
-        if (contents) {
-          cmds.push({ mode, doc: contents });
-        }
-        break;
-      }
-
-      case DOC_TYPE_LINE:
-        if (mode === MODE_BREAK || doc.hard) {
-          return true;
-        }
-        if (!doc.soft) {
-          out.push(" ");
-          width--;
-        }
-        break;
-
-      case DOC_TYPE_LINE_SUFFIX:
-        hasLineSuffix = true;
-        break;
-
-      case DOC_TYPE_LINE_SUFFIX_BOUNDARY:
-        if (hasLineSuffix) {
-          return false;
-        }
-        break;
-    }
-  }
-  return false;
-}
+// function fits(
+//   next,
+//   restCommands,
+//   width,
+//   hasLineSuffix,
+//   groupModeMap,
+//   mustBeFlat,
+// ) {
+//   if (width === Number.POSITIVE_INFINITY) {
+//     return true;
+//   }
+//
+//   let restIdx = restCommands.length;
+//   /** @type {Array<Omit<Command, 'ind'>>} */
+//   const cmds = [next];
+//   // `out` is only used for width counting because `trim` requires to look
+//   // backwards for space characters.
+//   const out = [];
+//   while (width >= 0) {
+//     if (cmds.length === 0) {
+//       if (restIdx === 0) {
+//         return true;
+//       }
+//       cmds.push(restCommands[--restIdx]);
+//
+//       continue;
+//     }
+//
+//     const { mode, doc } = cmds.pop();
+//
+//     switch (getDocType(doc)) {
+//       case DOC_TYPE_STRING:
+//         out.push(doc);
+//         width -= getStringWidth(doc);
+//         break;
+//
+//       case DOC_TYPE_ARRAY:
+//       case DOC_TYPE_FILL: {
+//         const parts = getDocParts(doc);
+//         for (let i = parts.length - 1; i >= 0; i--) {
+//           cmds.push({ mode, doc: parts[i] });
+//         }
+//         break;
+//       }
+//
+//       case DOC_TYPE_INDENT:
+//       case DOC_TYPE_ALIGN:
+//       case DOC_TYPE_INDENT_IF_BREAK:
+//       case DOC_TYPE_LABEL:
+//         cmds.push({ mode, doc: doc.contents });
+//         break;
+//
+//       case DOC_TYPE_TRIM:
+//         width += trim(out);
+//         break;
+//
+//       case DOC_TYPE_GROUP: {
+//         if (mustBeFlat && doc.break) {
+//           return false;
+//         }
+//         const groupMode = doc.break ? MODE_BREAK : mode;
+//         // The most expanded state takes up the least space on the current line.
+//         const contents =
+//           doc.expandedStates && groupMode === MODE_BREAK
+//             ? doc.expandedStates.at(-1)
+//             : doc.contents;
+//         cmds.push({ mode: groupMode, doc: contents });
+//         break;
+//       }
+//
+//       case DOC_TYPE_IF_BREAK: {
+//         const groupMode = doc.groupId
+//           ? groupModeMap[doc.groupId] || MODE_FLAT
+//           : mode;
+//         const contents =
+//           groupMode === MODE_BREAK ? doc.breakContents : doc.flatContents;
+//         if (contents) {
+//           cmds.push({ mode, doc: contents });
+//         }
+//         break;
+//       }
+//
+//       case DOC_TYPE_LINE:
+//         if (mode === MODE_BREAK || doc.hard) {
+//           return true;
+//         }
+//         if (!doc.soft) {
+//           out.push(" ");
+//           width--;
+//         }
+//         break;
+//
+//       case DOC_TYPE_LINE_SUFFIX:
+//         hasLineSuffix = true;
+//         break;
+//
+//       case DOC_TYPE_LINE_SUFFIX_BOUNDARY:
+//         if (hasLineSuffix) {
+//           return false;
+//         }
+//         break;
+//     }
+//   }
+//   return false;
+// }
 
 function printDocToString(doc, options) {
   /** @type GroupModeMap */
   const groupModeMap = {};
+
+  const fits = createFits();
 
   const width = options.printWidth;
   const newLine = convertEndOfLineToChars(options.endOfLine);
