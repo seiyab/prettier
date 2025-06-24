@@ -18,3 +18,19 @@ it("literal", () => {
     errors: [expect.anything()],
   });
 });
+
+describe("ident", () => {
+  // https://developer.mozilla.org/en-US/docs/Web/CSS/ident#examples
+  it.each(["nano79", "ground-level", "-test", "--toto", "_internal"])(
+    "%s",
+    (input) => {
+      const i = literal(input);
+
+      expect(i(source(input))).toEqual({
+        node: { type: "literal", value: input },
+        position: { source: input, index: input.length },
+        errors: [],
+      });
+    },
+  );
+});
