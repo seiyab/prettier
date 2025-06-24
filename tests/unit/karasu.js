@@ -7,7 +7,7 @@ it("literal", () => {
   const l = literal("abc");
 
   expect(l(source("abc"))).toEqual({
-    node: { type: "literal", value: "abc" },
+    node: null,
     position: { source: "abc", index: 3 },
     errors: [],
   });
@@ -27,7 +27,7 @@ describe("ident", () => {
       const i = literal(input);
 
       expect(i(source(input))).toEqual({
-        node: { type: "literal", value: input },
+        node: null,
         position: { source: input, index: input.length },
         errors: [],
       });

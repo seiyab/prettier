@@ -7,11 +7,10 @@
 /** @typedef {{ source: string, index: number }} SourcePosition */
 
 /**
- * @typedef {LiteralNode | IdentNode | ErrorNode} Node
- * @typedef {{ position: SourcePosition, node: Node, errors: ErrorNode[] }} NodeOutput
+ * @typedef {IdentNode | ErrorNode} Node
+ * @typedef {{ position: SourcePosition, node: Node | null, errors: ErrorNode[] }} NodeOutput
  *
  * @typedef {{ type: "error", error: Error }} ErrorNode
- * @typedef {{ type: "literal", value: string }} LiteralNode
  * @typedef {{ type: "ident", value: string }} IdentNode
  *
  * @typedef {(p: SourcePosition) => NodeOutput} Syntax
@@ -42,7 +41,7 @@ function literal(input) {
           source: position.source,
           index: position.index + input.length,
         },
-        node: { type: "literal", value: input },
+        node: null,
         errors: [],
       };
     }
