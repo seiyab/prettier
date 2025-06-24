@@ -2,6 +2,7 @@ import {
   literal,
   source,
 } from "../../src/language-css/parse/parse-value/karasu.js";
+import { ident } from "../../src/language-css/parse/parse-value/value-syntax.js";
 
 it("literal", () => {
   const l = literal("abc");
@@ -24,10 +25,11 @@ describe("ident", () => {
   it.each(["nano79", "ground-level", "-test", "--toto", "_internal"])(
     "%s",
     (input) => {
-      const i = literal(input);
-
-      expect(i(source(input))).toEqual({
-        node: null,
+      expect(ident(source(input))).toEqual({
+        node: {
+          type: "ident",
+          value: input,
+        },
         position: { source: input, index: input.length },
         errors: [],
       });

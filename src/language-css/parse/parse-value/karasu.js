@@ -4,16 +4,18 @@
  *
  */
 
-/** @typedef {{ source: string, index: number }} SourcePosition */
+/**
+ * @typedef {{ source: string, index: number }} SourcePosition
+ * @typedef {{ type: "error", error: Error }} ErrorNode
+ */
 
 /**
- * @typedef {IdentNode | ErrorNode} Node
- * @typedef {{ position: SourcePosition, node: Node | null, errors: ErrorNode[] }} NodeOutput
- *
- * @typedef {{ type: "error", error: Error }} ErrorNode
- * @typedef {{ type: "ident", value: string }} IdentNode
- *
- * @typedef {(p: SourcePosition) => NodeOutput} Syntax
+ * @template N
+ * @typedef {{ position: SourcePosition, node: N | null | ErrorNode, errors: ErrorNode[] }} NodeOutput<N>
+ */
+/**
+ * @template N
+ * @typedef {(p: SourcePosition) => NodeOutput<N>} Syntax
  */
 
 /**
@@ -30,10 +32,10 @@ function source(str) {
 
 /**
  * @param {string} input
- * @returns {Syntax}
+ * @returns {Syntax<never>}
  */
 function literal(input) {
-  /** @type {Syntax} */
+  /** @type {Syntax<never>} */
   const syntax = (position) => {
     if (input.startsWith(position.source, position.index)) {
       return {
@@ -61,45 +63,4 @@ function literal(input) {
   return syntax;
 }
 
-/** @type {Syntax} */
-const ident = (position) => {
-  /** @type {string[]} */
-  const chars = [];
-  let i = position.index;
-  for (; i < position.source.length; i++) {
-    const char = position.source[i];
-    // Identifiers can start with a letter or underscore, and can contain letters, digits, underscores, and hyphens.
-    if (
-      (char >= "a" && char <= "z") ||
-      (char >= "A" && char <= "Z") ||
-      char === "_" ||
-      (chars.length > 0 && char >= "0" && char <= "9") ||
-      char === "-"
-    ) {
-      chars.push(char);
-      continue;
-    }
-
-    if (char === "\\") {
-      // TODO: escaped character
-    }
-
-    break;
-  }
-
-  if (i === position.index) {
-    /** @type {ErrorNode} */
-    const error = {
-      type: "error",
-      error: new Error(`Expected identifier at index ${position.index}`),
-    };
-    return { node: error, position, errors: [error] };
-  }
-  return {
-    node: { type: "ident", value: chars.join("") },
-    position: { source: position.source, index: i },
-    errors: [],
-  };
-};
-
-export { ident, literal, source };
+export { literal, source };
