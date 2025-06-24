@@ -2,7 +2,10 @@ import {
   literal,
   source,
 } from "../../src/language-css/parse/parse-value/karasu.js";
-import { ident } from "../../src/language-css/parse/parse-value/value-syntax.js";
+import {
+  ident,
+  unit,
+} from "../../src/language-css/parse/parse-value/value-syntax.js";
 
 it("literal", () => {
   const l = literal("abc");
@@ -35,4 +38,15 @@ describe("ident", () => {
       });
     },
   );
+});
+
+describe("unit", () => {
+  // https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Values_and_Units#units
+  it.each(["%", "cap", "Hz", "in", "s", "deg", "grad"])("%s", (input) => {
+    expect(unit(source(input))).toEqual({
+      node: { type: "unit", value: input },
+      position: { source: input, index: input.length },
+      errors: [],
+    });
+  });
 });

@@ -3,10 +3,11 @@
  */
 
 /**
- * @typedef {IdentNode | ErrorNode} Node
+ * @typedef {IdentNode | UnitNode | ErrorNode} Node
  *
  * @typedef {{ type: "error", error: Error }} ErrorNode
  * @typedef {{ type: "ident", value: string }} IdentNode
+ * @typedef {{ type: "unit", value: string }} UnitNode
  *
  */
 
@@ -50,4 +51,42 @@ const ident = (position) => {
     errors: [],
   };
 };
-export { ident };
+
+/** @type {Syntax<UnitNode>} */
+const unit = (position) => {
+  /** @type {string[]} */
+  const chars = [];
+  let i = position.index;
+
+  if (position.source[i] === "%") {
+    return {
+      node: { type: "unit", value: "%" },
+      position: { source: position.source, index: i + 1 },
+      errors: [],
+    };
+  }
+
+  for (; i < position.source.length; i++) {
+    const char = position.source[i];
+    if ((char >= "a" && char <= "z") || (char >= "A" && char <= "Z")) {
+      chars.push(char);
+      continue;
+    }
+  }
+
+  if (i === position.index) {
+    /** @type {ErrorNode} */
+    const error = {
+      type: "error",
+      error: new Error(`Expected unit at index ${position.index}`),
+    };
+    return { node: error, position, errors: [error] };
+  }
+  return {
+    node: { type: "unit", value: chars.join("") },
+    position: { source: position.source, index: i },
+    errors: [],
+  };
+};
+
+export { ident, unit };
