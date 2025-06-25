@@ -63,4 +63,89 @@ function literal(input) {
   return syntax;
 }
 
-export { literal, source };
+/**
+ * @template N
+ * @param {Syntax<N>} syntax
+ * @returns {Syntax<N | null>}
+ */
+function opt(syntax) {
+  /** @type {Syntax<N | null>} */
+  const optionalSyntax = (position) => {
+    const output = syntax(position);
+    if (
+      typeof output.node === "object" &&
+      "type" in output.node &&
+      output.node.type === "error"
+    ) {
+      return {
+        position: output.position,
+        node: null,
+        errors: [],
+      };
+    }
+    return output;
+  };
+  return optionalSyntax;
+}
+
+/**
+ * @template {Record<string, Syntax<unknown>>} [State={}]
+ * @params {State}
+ * @typedef {{
+ *   bind: <Key extends string, Value>(x: Record<Key, Syntax<Value>>) => Compose<State & Record<Key, Syntax<Value>>>,
+ *   end: <T>(f: (s: {[K in keyof State]: Exclude<ReturnType<State[K]>['node'], ErrorNode>}) => T) => Syntax<T>
+ * }} Compose<State>
+ * @returns {Compose}
+ */
+function compose(state = {}) {
+  return {
+    // @ts-expect-error
+    bind,
+    end,
+  };
+  /**
+   * @template {string} Key
+   * @template Value
+   * @param {Record<Key, Syntax<Value>>} x
+   */
+  function bind(x) {
+    return compose({ ...state, ...x });
+  }
+
+  /**
+   * @template T
+   * @param {(s: Record<string, any>) => T} f
+   * @returns {Syntax<T>}
+   */
+  function end(f) {
+    return composedSyntax;
+    /** @type {Syntax<T>} */
+    function composedSyntax(argPosition) {
+      /** @type any */
+      const resolved = {};
+      const errors = [];
+      let position = argPosition;
+      for (const key in state) {
+        const syntax = state[key];
+        const output = syntax(position);
+        if (output.type === "error") {
+          return {
+            position: argPosition,
+            node: output.node,
+            errors: output.errors,
+          };
+        }
+        position = output.position;
+        errors.push(...output.errors);
+        resolved[key] = output.node;
+      }
+      return {
+        position,
+        node: f(resolved),
+        errors,
+      };
+    }
+  }
+}
+
+export { compose, literal, opt, source };

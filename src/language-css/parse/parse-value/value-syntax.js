@@ -1,14 +1,17 @@
+import { compose, opt } from "./karasu.js";
+
 /**
  * @import { ErrorNode, Syntax } from './karasu.js'
  */
 
 /**
- * @typedef {IdentNode | UnitNode | ErrorNode} Node
+ * @typedef {IdentNode | UnitNode | NumberNode | ErrorNode} Node
  *
  * @typedef {{ type: "error", error: Error }} ErrorNode
  * @typedef {{ type: "ident", value: string }} IdentNode
  * @typedef {{ type: "unit", value: string }} UnitNode
- *
+ * @typedef {{ type: "number", value: string, unit: string }} NumberNode
+ * @typedef {{ type: "digits", value: string }} Digits
  */
 
 /** @type {Syntax<IdentNode>} */
@@ -89,4 +92,45 @@ const unit = (position) => {
   };
 };
 
-export { ident, unit };
+/** @type {Syntax<Digits>} */
+const digits = (position) => {
+  /** @type {string[]} */
+  const chars = [];
+  let i = position.index;
+
+  for (; i < position.source.length; i++) {
+    const char = position.source[i];
+    if (char >= "0" && char <= "9") {
+      chars.push(char);
+      continue;
+    }
+    break;
+  }
+
+  if (i === position.index) {
+    /** @type {ErrorNode} */
+    const error = {
+      type: "error",
+      error: new Error(`Expected digits at index ${position.index}`),
+    };
+    return { node: error, position, errors: [error] };
+  }
+
+  return {
+    node: { type: "digits", value: chars.join("") },
+    position: { source: position.source, index: i },
+    errors: [],
+  };
+};
+
+/** @type {Syntax<NumberNode>} */
+const number = compose()
+  .bind({ d: digits })
+  .bind({ u: opt(unit) })
+  .end(({ d, u }) => ({
+    type: "number",
+    value: d.value,
+    unit: u?.value ?? "",
+  }));
+
+export { ident, number, unit };

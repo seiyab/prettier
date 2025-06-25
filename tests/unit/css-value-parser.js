@@ -4,6 +4,7 @@ import {
 } from "../../src/language-css/parse/parse-value/karasu.js";
 import {
   ident,
+  number,
   unit,
 } from "../../src/language-css/parse/parse-value/value-syntax.js";
 
@@ -46,6 +47,24 @@ describe("unit", () => {
     expect(unit(source(input))).toEqual({
       node: { type: "unit", value: input },
       position: { source: input, index: input.length },
+      errors: [],
+    });
+  });
+});
+
+describe("number", () => {
+  it("1234", () => {
+    expect(number(source("1234"))).toEqual({
+      node: { type: "number", value: "1234", unit: "" },
+      position: { source: "1234", index: 4 },
+      errors: [],
+    });
+  });
+
+  it("1234px", () => {
+    expect(number(source("1234px"))).toEqual({
+      node: { type: "number", value: "1234", unit: "px" },
+      position: { source: "1234px", index: 6 },
       errors: [],
     });
   });
