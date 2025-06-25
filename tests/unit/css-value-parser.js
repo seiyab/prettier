@@ -50,6 +50,17 @@ describe("unit", () => {
       errors: [],
     });
   });
+
+  it("fail", () => {
+    expect(unit(source("123px"))).toEqual({
+      position: { source: "123px", index: 0 },
+      node: {
+        type: "error",
+        error: expect.anything(),
+      },
+      errors: expect.anything(),
+    });
+  });
 });
 
 describe("number", () => {

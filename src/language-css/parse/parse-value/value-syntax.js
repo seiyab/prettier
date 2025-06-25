@@ -75,6 +75,7 @@ const unit = (position) => {
       chars.push(char);
       continue;
     }
+    break;
   }
 
   if (i === position.index) {
