@@ -1,7 +1,7 @@
 import {
   literal,
   source,
-} from "../../src/language-css/parse/parse-value/karasu.js";
+} from "../../src/language-css/parse/parse-value/syntax-builder.js";
 import {
   calcSum,
   number,

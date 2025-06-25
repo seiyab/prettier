@@ -1,7 +1,7 @@
-import { alt, compose, literal, map, opt, repeated } from "./karasu.js";
+import { alt, compose, literal, map, opt, repeated } from "./syntax-builder.js";
 
 /**
- * @import { ErrorNode, Syntax } from './karasu.js'
+ * @import { ErrorNode, Syntax } from './syntax-builder.js'
  */
 
 /**
