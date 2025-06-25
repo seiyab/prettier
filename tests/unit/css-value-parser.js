@@ -84,20 +84,41 @@ describe("number", () => {
 
 describe("calcSum", () => {
   it("1234 + 5678", () => {
-    expect(calcSum(source("1234 + 5678"))).toEqual({
-      node: {
-        type: "calc-sum",
-        first: { type: "number", value: "1234", unit: "" },
-        rest: [
-          {
-            operator: "+",
-            item: { type: "number", value: "5678", unit: "" },
+    expect(calcSum(source("1234 + 5678"))).toMatchInlineSnapshot(`
+      {
+        "errors": [],
+        "node": {
+          "first": {
+            "first": {
+              "type": "number",
+              "unit": "",
+              "value": "1234",
+            },
+            "rest": [],
+            "type": "calc-product",
           },
-        ],
-      },
-      position: { source: "1234 + 5678", index: 11 },
-      errors: [],
-    });
+          "rest": [
+            {
+              "item": {
+                "first": {
+                  "type": "number",
+                  "unit": "",
+                  "value": "5678",
+                },
+                "rest": [],
+                "type": "calc-product",
+              },
+              "operator": "+",
+            },
+          ],
+          "type": "calc-sum",
+        },
+        "position": {
+          "index": 11,
+          "source": "1234 + 5678",
+        },
+      }
+    `);
   });
 
   it("100px+5px", () => {
@@ -110,18 +131,114 @@ describe("calcSum", () => {
     expect(result.node).toMatchInlineSnapshot(`
       {
         "first": {
-          "type": "number",
-          "unit": "px",
-          "value": "100",
+          "first": {
+            "type": "number",
+            "unit": "px",
+            "value": "100",
+          },
+          "rest": [],
+          "type": "calc-product",
         },
         "rest": [
           {
             "item": {
-              "type": "number",
-              "unit": "px",
-              "value": "5",
+              "first": {
+                "type": "number",
+                "unit": "px",
+                "value": "5",
+              },
+              "rest": [],
+              "type": "calc-product",
             },
             "operator": "+",
+          },
+        ],
+        "type": "calc-sum",
+      }
+    `);
+  });
+
+  it("100px+5px * 5 - 100px /(7 + 1)", () => {
+    const result = calcSum(source("100px+5px * 5 - 100px /(7 + 1)"));
+    expect(result).toEqual({
+      node: expect.anything(),
+      position: { source: "100px+5px * 5 - 100px /(7 + 1)", index: 30 },
+      errors: [],
+    });
+    expect(result.node).toMatchInlineSnapshot(`
+      {
+        "first": {
+          "first": {
+            "type": "number",
+            "unit": "px",
+            "value": "100",
+          },
+          "rest": [],
+          "type": "calc-product",
+        },
+        "rest": [
+          {
+            "item": {
+              "first": {
+                "type": "number",
+                "unit": "px",
+                "value": "5",
+              },
+              "rest": [
+                {
+                  "item": {
+                    "type": "number",
+                    "unit": "",
+                    "value": "5",
+                  },
+                  "operator": "*",
+                },
+              ],
+              "type": "calc-product",
+            },
+            "operator": "+",
+          },
+          {
+            "item": {
+              "first": {
+                "type": "number",
+                "unit": "px",
+                "value": "100",
+              },
+              "rest": [
+                {
+                  "item": {
+                    "first": {
+                      "first": {
+                        "type": "number",
+                        "unit": "",
+                        "value": "7",
+                      },
+                      "rest": [],
+                      "type": "calc-product",
+                    },
+                    "rest": [
+                      {
+                        "item": {
+                          "first": {
+                            "type": "number",
+                            "unit": "",
+                            "value": "1",
+                          },
+                          "rest": [],
+                          "type": "calc-product",
+                        },
+                        "operator": "+",
+                      },
+                    ],
+                    "type": "calc-sum",
+                  },
+                  "operator": "/",
+                },
+              ],
+              "type": "calc-product",
+            },
+            "operator": "-",
           },
         ],
         "type": "calc-sum",

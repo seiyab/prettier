@@ -143,7 +143,7 @@ function number(position) {
 /** @type {Syntax<CalcSum>} */
 function calcSum(position) {
   const base = repeated(
-    number,
+    calcProduct,
     compose()
       .bind({ __1: opt(spaces) })
       .bind({ op: alt(literal("+"), literal("-")) })
@@ -155,6 +155,35 @@ function calcSum(position) {
     /** @returns {CalcSum} */
     ({ first, rest }) => ({
       type: "calc-sum",
+      first,
+      rest: rest.map(({ separator, item }) => ({ operator: separator, item })),
+    }),
+  )(position);
+}
+
+/** @type {Syntax<CalcProduct>} */
+function calcProduct(position) {
+  const base = repeated(
+    alt(
+      number,
+      // @ts-expect-error
+      compose()
+        .bind({ _1: literal("(") })
+        .bind({ sum: calcSum })
+        .bind({ _3: literal(")") })
+        .end(({ sum }) => sum),
+    ),
+    compose()
+      .bind({ __1: opt(spaces) })
+      .bind({ op: alt(literal("*"), literal("/")) })
+      .bind({ __2: opt(spaces) })
+      .end(({ op }) => op),
+  );
+  return map(
+    base,
+    /** @returns {CalcProduct} */
+    ({ first, rest }) => ({
+      type: "calc-product",
       first,
       rest: rest.map(({ separator, item }) => ({ operator: separator, item })),
     }),
@@ -191,4 +220,4 @@ function spaces(position) {
   };
 }
 
-export { calcSum, ident, number, unit };
+export { calcProduct, calcSum, ident, number, unit };
