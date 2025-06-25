@@ -1,4 +1,4 @@
-import { compose, opt } from "./karasu.js";
+import { alt, compose, literal, map, opt, repeated } from "./karasu.js";
 
 /**
  * @import { ErrorNode, Syntax } from './karasu.js'
@@ -12,6 +12,8 @@ import { compose, opt } from "./karasu.js";
  * @typedef {{ type: "unit", value: string }} UnitNode
  * @typedef {{ type: "number", value: string, unit: string }} NumberNode
  * @typedef {{ type: "digits", value: string }} Digits
+ * @typedef {{ type: "calc-product", first: NumberNode | CalcSum, rest: Array<{ operator: "*" | "/", item: NumberNode | CalcSum }> }} CalcProduct
+ * @typedef {{ type: "calc-sum", first: CalcProduct, rest: Array<{operator: "+" | "-", item: CalcProduct}> }} CalcSum
  */
 
 /** @type {Syntax<IdentNode>} */
@@ -138,4 +140,55 @@ function number(position) {
   return syntax(position);
 }
 
-export { ident, number, unit };
+/** @type {Syntax<CalcSum>} */
+function calcSum(position) {
+  const base = repeated(
+    number,
+    compose()
+      .bind({ __1: opt(spaces) })
+      .bind({ op: alt(literal("+"), literal("-")) })
+      .bind({ __2: opt(spaces) })
+      .end(({ op }) => op),
+  );
+  return map(
+    base,
+    /** @returns {CalcSum} */
+    ({ first, rest }) => ({
+      type: "calc-sum",
+      first,
+      rest: rest.map(({ separator, item }) => ({ operator: separator, item })),
+    }),
+  )(position);
+}
+
+/**
+ * @type {Syntax<null>}
+ */
+function spaces(position) {
+  let i = position.index;
+
+  for (; i < position.source.length; i++) {
+    const char = position.source[i];
+    if ([" ", "\t", "\n"].includes(char)) {
+      continue;
+    }
+    break;
+  }
+
+  if (i === position.index) {
+    /** @type {ErrorNode} */
+    const error = {
+      type: "error",
+      error: new Error(`Expected digits at index ${position.index}`),
+    };
+    return { node: error, position, errors: [error] };
+  }
+
+  return {
+    node: null,
+    position: { source: position.source, index: i },
+    errors: [],
+  };
+}
+
+export { calcSum, ident, number, unit };

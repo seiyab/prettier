@@ -3,6 +3,7 @@ import {
   source,
 } from "../../src/language-css/parse/parse-value/karasu.js";
 import {
+  calcSum,
   ident,
   number,
   unit,
@@ -12,7 +13,7 @@ it("literal", () => {
   const l = literal("abc");
 
   expect(l(source("abc"))).toEqual({
-    node: null,
+    node: "abc",
     position: { source: "abc", index: 3 },
     errors: [],
   });
@@ -78,5 +79,53 @@ describe("number", () => {
       position: { source: "1234px", index: 6 },
       errors: [],
     });
+  });
+});
+
+describe("calcSum", () => {
+  it("1234 + 5678", () => {
+    expect(calcSum(source("1234 + 5678"))).toEqual({
+      node: {
+        type: "calc-sum",
+        first: { type: "number", value: "1234", unit: "" },
+        rest: [
+          {
+            operator: "+",
+            item: { type: "number", value: "5678", unit: "" },
+          },
+        ],
+      },
+      position: { source: "1234 + 5678", index: 11 },
+      errors: [],
+    });
+  });
+
+  it("100px+5px", () => {
+    const result = calcSum(source("100px+5px"));
+    expect(result).toEqual({
+      node: expect.anything(),
+      position: { source: "100px+5px", index: 9 },
+      errors: [],
+    });
+    expect(result.node).toMatchInlineSnapshot(`
+      {
+        "first": {
+          "type": "number",
+          "unit": "px",
+          "value": "100",
+        },
+        "rest": [
+          {
+            "item": {
+              "type": "number",
+              "unit": "px",
+              "value": "5",
+            },
+            "operator": "+",
+          },
+        ],
+        "type": "calc-sum",
+      }
+    `);
   });
 });
