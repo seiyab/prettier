@@ -15,7 +15,7 @@ import { compose, opt } from "./karasu.js";
  */
 
 /** @type {Syntax<IdentNode>} */
-const ident = (position) => {
+function ident(position) {
   /** @type {string[]} */
   const chars = [];
   let i = position.index;
@@ -53,10 +53,10 @@ const ident = (position) => {
     position: { source: position.source, index: i },
     errors: [],
   };
-};
+}
 
 /** @type {Syntax<UnitNode>} */
-const unit = (position) => {
+function unit(position) {
   /** @type {string[]} */
   const chars = [];
   let i = position.index;
@@ -91,10 +91,10 @@ const unit = (position) => {
     position: { source: position.source, index: i },
     errors: [],
   };
-};
+}
 
 /** @type {Syntax<Digits>} */
-const digits = (position) => {
+function digits(position) {
   /** @type {string[]} */
   const chars = [];
   let i = position.index;
@@ -122,16 +122,20 @@ const digits = (position) => {
     position: { source: position.source, index: i },
     errors: [],
   };
-};
+}
 
 /** @type {Syntax<NumberNode>} */
-const number = compose()
-  .bind({ d: digits })
-  .bind({ u: opt(unit) })
-  .end(({ d, u }) => ({
-    type: "number",
-    value: d.value,
-    unit: u?.value ?? "",
-  }));
+function number(position) {
+  /** @type {Syntax<NumberNode>} */
+  const syntax = compose()
+    .bind({ d: digits })
+    .bind({ u: opt(unit) })
+    .end(({ d, u }) => ({
+      type: "number",
+      value: d.value,
+      unit: u?.value ?? "",
+    }));
+  return syntax(position);
+}
 
 export { ident, number, unit };
