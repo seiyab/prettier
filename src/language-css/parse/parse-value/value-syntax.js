@@ -5,10 +5,10 @@ import { alt, compose, literal, map, opt, repeated } from "./karasu.js";
  */
 
 /**
- * @typedef {IdentNode | UnitNode | NumberNode | ErrorNode} Node
+ * @typedef {WordNode | UnitNode | NumberNode | ErrorNode} Node
  *
  * @typedef {{ type: "error", error: Error }} ErrorNode
- * @typedef {{ type: "ident", value: string }} IdentNode
+ * @typedef {{ type: "word", value: string, isHex: boolean, isColor: boolean  }} WordNode
  * @typedef {{ type: "unit", value: string }} UnitNode
  * @typedef {{ type: "number", value: string, unit: string }} NumberNode
  * @typedef {{ type: "digits", value: string }} Digits
@@ -16,8 +16,8 @@ import { alt, compose, literal, map, opt, repeated } from "./karasu.js";
  * @typedef {{ type: "calc-sum", first: CalcProduct, rest: Array<{operator: "+" | "-", item: CalcProduct}> }} CalcSum
  */
 
-/** @type {Syntax<IdentNode>} */
-function ident(position) {
+/** @type {Syntax<WordNode>} */
+function word(position) {
   /** @type {string[]} */
   const chars = [];
   let i = position.index;
@@ -29,7 +29,8 @@ function ident(position) {
       (char >= "A" && char <= "Z") ||
       char === "_" ||
       (chars.length > 0 && char >= "0" && char <= "9") ||
-      char === "-"
+      char === "-" ||
+      (chars.length === 0 && char === "#")
     ) {
       chars.push(char);
       continue;
@@ -46,12 +47,22 @@ function ident(position) {
     /** @type {ErrorNode} */
     const error = {
       type: "error",
-      error: new Error(`Expected identifier at index ${position.index}`),
+      error: new Error(`Expected word at index ${position.index}`),
     };
     return { node: error, position, errors: [error] };
   }
+  const value = chars.join("");
   return {
-    node: { type: "ident", value: chars.join("") },
+    node: {
+      type: "word",
+      value,
+      // eslint-disable-next-line regexp/no-unused-capturing-group
+      isHex: /^#(.+)/u.test(value),
+      // eslint-disable-next-line regexp/no-unused-capturing-group
+      isColor: /^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/iu.test(
+        value,
+      ),
+    },
     position: { source: position.source, index: i },
     errors: [],
   };
@@ -220,4 +231,4 @@ function spaces(position) {
   };
 }
 
-export { calcProduct, calcSum, ident, number, unit };
+export { calcProduct, calcSum, number, unit, word };

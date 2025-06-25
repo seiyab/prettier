@@ -4,9 +4,9 @@ import {
 } from "../../src/language-css/parse/parse-value/karasu.js";
 import {
   calcSum,
-  ident,
   number,
   unit,
+  word,
 } from "../../src/language-css/parse/parse-value/value-syntax.js";
 
 it("literal", () => {
@@ -25,21 +25,51 @@ it("literal", () => {
   });
 });
 
-describe("ident", () => {
+describe("word", () => {
   // https://developer.mozilla.org/en-US/docs/Web/CSS/ident#examples
   it.each(["nano79", "ground-level", "-test", "--toto", "_internal"])(
     "%s",
     (input) => {
-      expect(ident(source(input))).toEqual({
+      expect(word(source(input))).toEqual({
         node: {
-          type: "ident",
+          type: "word",
           value: input,
+          isHex: false,
+          isColor: false,
         },
         position: { source: input, index: input.length },
         errors: [],
       });
     },
   );
+
+  describe("color / hex", () => {
+    it.each(["#012", "#3456", "#7890ab", "#cdef0000"])("%s", (input) => {
+      expect(word(source(input))).toEqual({
+        node: {
+          type: "word",
+          value: input,
+          isHex: true,
+          isColor: true,
+        },
+        position: { source: input, index: input.length },
+        errors: [],
+      });
+    });
+
+    it.each(["#12345", "#123456789"])("%s", (input) => {
+      expect(word(source(input))).toEqual({
+        node: {
+          type: "word",
+          value: input,
+          isHex: true,
+          isColor: false,
+        },
+        position: { source: input, index: input.length },
+        errors: [],
+      });
+    });
+  });
 });
 
 describe("unit", () => {
