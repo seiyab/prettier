@@ -75,7 +75,7 @@ function opt(syntax) {
     const output = syntax(position);
     if (isErrorNode(output.node)) {
       return {
-        position: output.position,
+        position,
         node: null,
         errors: [],
       };
@@ -86,18 +86,21 @@ function opt(syntax) {
 }
 
 /**
- * @template {Record<string, Syntax<unknown>>} [State={}]
- * @params {State}
+ * @template {Record<string | symbol, Syntax<unknown>>} [State={}]
+ * @params {State[]}
  * @typedef {{
  *   bind: <Key extends string, Value>(x: Record<Key, Syntax<Value>>) => Compose<State & Record<Key, Syntax<Value>>>,
+ *   drop: (x: Syntax<unknown>) => Compose<State>,
  *   end: <T>(f: (s: {[K in keyof State]: Exclude<ReturnType<State[K]>['node'], ErrorNode>}) => T) => Syntax<T>
  * }} Compose<State>
  * @returns {Compose}
  */
-function compose(state = {}) {
+function compose(state = []) {
+  const dropSymbol = Symbol.for("compose-drop");
   return {
     // @ts-expect-error
     bind,
+    drop,
     end,
   };
   /**
@@ -106,7 +109,14 @@ function compose(state = {}) {
    * @param {Record<Key, Syntax<Value>>} x
    */
   function bind(x) {
-    return compose({ ...state, ...x });
+    return compose([...state, x]);
+  }
+
+  /**
+   * @param {Syntax<unknown>} syntax
+   */
+  function drop(syntax) {
+    return compose([...state, { [dropSymbol]: syntax }]);
   }
 
   /**
@@ -120,21 +130,27 @@ function compose(state = {}) {
     function composedSyntax(argPosition) {
       /** @type any */
       const resolved = {};
+      /** @type {ErrorNode[]} */
       const errors = [];
       let position = argPosition;
-      for (const key in state) {
-        const syntax = state[key];
-        const output = syntax(position);
-        if (isErrorNode(output.node)) {
-          return {
-            position: argPosition,
-            node: output.node,
-            errors: output.errors,
-          };
+      for (const entry of state) {
+        for (const key of [...Object.keys(entry), dropSymbol]) {
+          const syntax = entry[key];
+          if (syntax === undefined) {
+            continue;
+          }
+          const output = syntax(position);
+          if (isErrorNode(output.node)) {
+            return {
+              position: argPosition,
+              node: output.node,
+              errors: output.errors,
+            };
+          }
+          position = output.position;
+          errors.push(...output.errors);
+          resolved[key] = output.node;
         }
-        position = output.position;
-        errors.push(...output.errors);
-        resolved[key] = output.node;
       }
       return {
         position,
@@ -226,6 +242,105 @@ function repeated(itemSyntax, separatorSyntax) {
 }
 
 /**
+ * @template Open, Body, Close
+ * @param {{
+ *  open: Syntax<Open>,
+ *  body: Syntax<Body>,
+ *  close: Syntax<Close>,
+ * }} params
+ * @returns {Syntax<{open: Open, body: Body | ErrorNode, close: Close | null, skipped: string}>}
+ */
+function recoverable({ open, body, close }) {
+  /** @type {Syntax<{open: Open, body: Body| ErrorNode, close: Close | null, skipped: string}>} */
+  return (position) => {
+    /** @type {ErrorNode[]} */
+    const errors = [];
+    const openOutput = open(position);
+    errors.push(...openOutput.errors);
+    if (isErrorNode(openOutput.node)) {
+      return { ...openOutput, node: openOutput.node };
+    }
+    const bodyOutput = body(openOutput.position);
+    errors.push(...bodyOutput.errors);
+    if (isErrorNode(bodyOutput.node)) {
+      const {
+        close: closeNode,
+        skipped,
+        position: synchronizedPosition,
+      } = synchronize(openOutput.position);
+      return {
+        node: {
+          open: openOutput.node,
+          body: bodyOutput.node,
+          close: closeNode,
+          skipped,
+        },
+        errors,
+        position: synchronizedPosition,
+      };
+    }
+    const closeOutput = close(bodyOutput.position);
+    errors.push(...closeOutput.errors);
+    if (isErrorNode(closeOutput.node)) {
+      const {
+        close: closeNode,
+        skipped,
+        position: synchronizedPosition,
+      } = synchronize(bodyOutput.position);
+      return {
+        node: {
+          open: openOutput.node,
+          body: bodyOutput.node,
+          close: closeNode,
+          skipped,
+        },
+        errors,
+        position: synchronizedPosition,
+      };
+    }
+
+    return {
+      position: closeOutput.position,
+      node: {
+        open: openOutput.node,
+        body: bodyOutput.node,
+        close: closeOutput.node,
+        skipped: "",
+      },
+      errors,
+    };
+  };
+
+  /**
+   * @params {SourcePosition} pos
+   * @returns {{
+   *  close: Close | null,
+   *  skipped: string,
+   *  position: SourcePosition,
+   * }}
+   */
+  function synchronize(pos) {
+    for (let i = pos.index; i < pos.source.length; i++) {
+      const tryPosition = { ...pos, index: i };
+      const closeOutput = close(tryPosition);
+      if (isErrorNode(closeOutput.node)) {
+        continue;
+      }
+      return {
+        close: closeOutput.node,
+        skipped: pos.source.slice(pos.index, i),
+        position: { source: pos.source, index: i },
+      };
+    }
+    return {
+      close: null,
+      skipped: pos.source.slice(pos.index),
+      position: { source: pos.source, index: pos.source.length },
+    };
+  }
+}
+
+/**
  * @param {unknown} node
  * @returns {node is ErrorNode}
  */
@@ -261,4 +376,14 @@ function map(syntax, f) {
   };
 }
 
-export { alt, compose, literal, map, opt, repeated, source };
+export {
+  alt,
+  compose,
+  isErrorNode,
+  literal,
+  map,
+  opt,
+  recoverable,
+  repeated,
+  source,
+};

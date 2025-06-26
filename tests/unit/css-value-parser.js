@@ -4,6 +4,7 @@ import {
 } from "../../src/language-css/parse/parse-value/syntax-builder.js";
 import {
   calcSum,
+  func,
   number,
   unit,
   word,
@@ -69,6 +70,58 @@ describe("word", () => {
         errors: [],
       });
     });
+  });
+});
+
+describe("func", () => {
+  it("rgba(255, 0, 0, 1)", () => {
+    const input = "rgba(255, 0, 0, 1)";
+    const out = func(source(input));
+    expect(out).toEqual({
+      position: { source: input, index: input.length },
+      node: expect.anything(),
+      errors: [],
+    });
+    expect(out.node).toMatchInlineSnapshot(`
+      {
+        "group": {
+          "close": {
+            "type": "paren",
+            "value": ")",
+          },
+          "groups": [
+            {
+              "type": "number",
+              "unit": "",
+              "value": "255",
+            },
+            {
+              "type": "number",
+              "unit": "",
+              "value": "0",
+            },
+            {
+              "type": "number",
+              "unit": "",
+              "value": "0",
+            },
+            {
+              "type": "number",
+              "unit": "",
+              "value": "1",
+            },
+          ],
+          "open": {
+            "type": "paren",
+            "value": "(",
+          },
+          "type": "paren_group",
+        },
+        "skipped": "",
+        "type": "func",
+        "value": "rgba",
+      }
+    `);
   });
 });
 
