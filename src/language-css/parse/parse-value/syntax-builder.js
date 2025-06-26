@@ -329,7 +329,7 @@ function recoverable({ open, body, close }) {
       return {
         close: closeOutput.node,
         skipped: pos.source.slice(pos.index, i),
-        position: { source: pos.source, index: i },
+        position: closeOutput.position,
       };
     }
     return {

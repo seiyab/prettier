@@ -123,6 +123,41 @@ describe("func", () => {
       }
     `);
   });
+
+  it("invald(123px, &%@)ab", () => {
+    const input = "invald(123px, &%@)ab";
+    const out = func(source(input));
+    expect(out.position).toEqual({
+      source: input,
+      index: input.length - 2,
+    });
+    expect(out.node).toMatchInlineSnapshot(`
+      {
+        "group": {
+          "close": {
+            "type": "paren",
+            "value": ")",
+          },
+          "groups": [
+            {
+              "type": "number",
+              "unit": "px",
+              "value": "123",
+            },
+          ],
+          "open": {
+            "type": "paren",
+            "value": "(",
+          },
+          "type": "paren_group",
+        },
+        "skipped": ", &%@",
+        "type": "func",
+        "value": "invald",
+      }
+    `);
+    expect(out.errors.length).toBeGreaterThan(0);
+  });
 });
 
 describe("unit", () => {
