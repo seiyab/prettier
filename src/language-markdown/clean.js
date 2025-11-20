@@ -37,6 +37,12 @@ function clean(original, cloned, parent) {
 
   if (original.type === "wikiLink") {
     cloned.value = original.value.trim().replaceAll(/[\t\n]+/gu, " ");
+    if (cloned.data) {
+      delete cloned.data.alias;
+      delete cloned.data.permalink;
+      delete cloned.data.hProperties;
+      delete cloned.data.hChildren;
+    }
   }
 
   if (
