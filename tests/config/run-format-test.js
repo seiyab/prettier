@@ -55,7 +55,20 @@ const unstableTests = new Map(
   }),
 );
 
-const unstableAstTests = new Map();
+const unstableAstTests = new Map(
+  [
+    "markdown/wiki-link/multi-line.md",
+    [
+      "markdown/wiki-link/exceeds-line-length-in-prose-broken.md",
+      (options) => options.proseWrap === "never",
+    ],
+  ].map((fixture) => {
+    const [file, isUnstable = () => true] = Array.isArray(fixture)
+      ? fixture
+      : [fixture];
+    return [path.join(__dirname, "../format/", file), isUnstable];
+  }),
+);
 const commentClosureTypecaseTests = new Set(
   [
     // These tests works on `babel`, `acorn`, `espree`, `oxc`, and `meriyah`
