@@ -1,11 +1,33 @@
 import { PUNCTUATION_REGEXP } from "./constants.evaluate.js";
 import { isAutolink } from "./utils.js";
 
+/**
+ * @import AstPath from "../common/ast-path.js"
+ * @import {Doc} from "../document/index.js"
+ */
+
+/**
+ * @params {AstPath} path
+ * @returns {Doc}
+ */
 function printWord(path) {
   const { node } = path;
-  return node.value;
+  const emphasisOrStrong = path.findAncestor(
+    (p) => p.type === "emphasis" || p.type === "strong",
+  );
+  if (!emphasisOrStrong) {
+    return node.value;
+  }
+  return node.value.replaceAll(
+    /(?<!((\\\\)*\\))[_*]/gu, // match `_` or `*` not preceded by an odd number of backslashes
+    (match) => `\\${match}`,
+  );
 }
 
+/**
+ * @params {AstPath} path
+ * @returns {Doc}
+ */
 function printWordLegacy(path) {
   const { node } = path;
   let escapedValue = node.value
