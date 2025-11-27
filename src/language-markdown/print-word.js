@@ -19,9 +19,76 @@ function printWord(path) {
     return node.value;
   }
   return node.value.replaceAll(
-    /(?<!((\\\\)*\\))[_*]/gu, // match `_` or `*` not preceded by an odd number of backslashes
-    (match) => `\\${match}`,
+    /([^\\]?)(\\*)(\*+|_+)(.|$)/gu,
+    (match, preceding, backslashes, delimiterRun, following) => {
+      if (backslashes.length % 2 === 1) {
+        return match; // already escaped
+      }
+      if (
+        canOpenOrCloseStrongOrEmphasis(
+          backslashes.at(-1) ?? preceding,
+          delimiterRun,
+          following,
+          path,
+        )
+      ) {
+        return `${preceding}${backslashes}\\${delimiterRun}${following}`;
+      }
+      return match;
+    },
   );
+}
+
+/**
+ * @param {AstPath} path
+ * @param {string} preceding
+ * @param {string} delimiterRun
+ * @param {string} following
+ * @returns {boolean}
+ */
+function canOpenOrCloseStrongOrEmphasis(
+  path,
+  preceding,
+  delimiterRun,
+  following,
+) {
+  const { previous, next } = path;
+
+  // https://spec.commonmark.org/0.31.2/#emphasis-and-strong-emphasis
+  const indicator = delimiterRun[0];
+  const followedByWhitespace = following
+    ? /\s/u.test(following)
+    : next === null || next.type === "whitespace";
+  const precededByWhitespace = preceding
+    ? /\s/u.test(preceding)
+    : previous === null || previous.type === "whitespace";
+  const followedByPunctuation = PUNCTUATION_REGEXP.test(following);
+  const precededByPunctuation = PUNCTUATION_REGEXP.test(preceding);
+
+  const isLeftFlanking =
+    !followedByWhitespace &&
+    (!followedByPunctuation ||
+      (followedByPunctuation &&
+        (precededByWhitespace || precededByPunctuation)));
+  const isRightFlanking =
+    !precededByWhitespace &&
+    (!precededByPunctuation ||
+      (precededByPunctuation &&
+        (followedByWhitespace || followedByPunctuation)));
+
+  if (indicator === "*") {
+    return isLeftFlanking || isRightFlanking;
+  }
+
+  if (isLeftFlanking) {
+    return !isRightFlanking || precededByPunctuation;
+  }
+
+  if (isRightFlanking) {
+    return !isLeftFlanking || followedByPunctuation;
+  }
+
+  return false;
 }
 
 /**
@@ -71,4 +138,4 @@ function printWordLegacy(path) {
   return escapedValue;
 }
 
-export { printWord, printWordLegacy };
+export { printWord, printWordLegacy, canOpenOrCloseStrongOrEmphasis };
