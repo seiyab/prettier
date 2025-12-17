@@ -225,14 +225,9 @@ text
 <img src="image.png" />
 
 =====================================output=====================================
-text
+text <em>text</em> text
 
-<em>text</em>
-text
-
-![image](https://example.com)
-
-<img src="image.png" />
+![image](https://example.com) <img src="image.png" />
 
 ================================================================================
 `;
@@ -252,14 +247,9 @@ text
 <img src="image.png" />
 
 =====================================output=====================================
-text
+text <em>text</em> text
 
-<em>text</em>
-text
-
-![image](https://example.com)
-
-<img src="image.png" />
+![image](https://example.com) <img src="image.png" />
 
 ================================================================================
 `;
@@ -280,12 +270,10 @@ text
 
 =====================================output=====================================
 text
-
 <em>text</em>
 text
 
 ![image](https://example.com)
-
 <img src="image.png" />
 
 ================================================================================
@@ -503,7 +491,7 @@ proseWrap: "always"
 
 =====================================output=====================================
 <unknown title="line 1
-  line 2
+line 2
 "></unknown>
 
 <div title="line 1
@@ -514,7 +502,7 @@ proseWrap: "always"
   - In list
 
     <unknown title="line 1
-      line 2
+    line 2
     "></unknown>
 
     <div title="line 1
@@ -524,7 +512,7 @@ proseWrap: "always"
 > in blockquote
 >
 > <unknown title="line 1
->   line 2
+> line 2
 > "></unknown>
 >
 > <div title="line 1
@@ -573,7 +561,7 @@ proseWrap: "never"
 
 =====================================output=====================================
 <unknown title="line 1
-  line 2
+line 2
 "></unknown>
 
 <div title="line 1
@@ -584,7 +572,7 @@ proseWrap: "never"
   - In list
 
     <unknown title="line 1
-      line 2
+    line 2
     "></unknown>
 
     <div title="line 1
@@ -594,7 +582,7 @@ proseWrap: "never"
 > in blockquote
 >
 > <unknown title="line 1
->   line 2
+> line 2
 > "></unknown>
 >
 > <div title="line 1
@@ -643,7 +631,7 @@ proseWrap: "preserve"
 
 =====================================output=====================================
 <unknown title="line 1
-  line 2
+line 2
 "></unknown>
 
 <div title="line 1
@@ -654,7 +642,7 @@ proseWrap: "preserve"
   - In list
 
     <unknown title="line 1
-      line 2
+    line 2
     "></unknown>
 
     <div title="line 1
@@ -664,7 +652,7 @@ proseWrap: "preserve"
 > in blockquote
 >
 > <unknown title="line 1
->   line 2
+> line 2
 > "></unknown>
 >
 > <div title="line 1
