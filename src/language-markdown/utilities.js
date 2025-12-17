@@ -325,7 +325,21 @@ function isSetextHeading(node) {
   return start.line !== end.line;
 }
 
+function getBlockquoteRawText(text, node) {
+  const angleBracketsRegex = /^([ \t]*>[ \t]*)*/u;
+  const rawLines = text.split("\n");
+  const valueLines = node.value.split("\n");
+  const resultLines = rawLines.map((rawLine, index) => {
+    const valueLine = valueLines[index] ?? "";
+    const leadingTextAngleBrackets =
+      valueLine.match(angleBracketsRegex)[0] ?? "";
+    return rawLine.replace(angleBracketsRegex, leadingTextAngleBrackets);
+  });
+  return resultLines.join("\n");
+}
+
 export {
+  getBlockquoteRawText,
   getFencedCodeBlockValue,
   getNthListSiblingIndex,
   getOrderedListItemInfo,

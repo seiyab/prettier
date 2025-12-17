@@ -244,7 +244,7 @@ function printMdast(path, options, print) {
       ];
     }
     case "html":
-      return printHtml(path);
+      return printHtml(path, options);
     case "list":
       if (options.parser === "mdx") {
         return printListLegacy(path, options, print);

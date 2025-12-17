@@ -12,18 +12,29 @@ import {
 
 /**
  * @param {AstPath} path
+ * @param {*} options
  * @return {Doc}
  */
-function printHtml(path) {
-  const { node, parent, isLast } = path;
-  const value =
-    parent.type === "root" && isLast ? node.value.trimEnd() : node.value;
+function printHtml(path, options) {
+  const value = htmlValue(path, options);
   const isHtmlComment = /^<!--.*-->$/su.test(value);
 
   return replaceEndOfLine(
     value,
     isHtmlComment ? hardline : markAsRoot(literalline),
   );
+}
+
+/**
+ * @param {AstPath} path
+ * @param {*} options
+ * @return {string}
+ */
+function htmlValue(path, options) {
+  const { node, parent, isLast } = path;
+  if (options.parser === "mdx") {
+    return parent.type === "root" && isLast ? node.value.trimEnd() : node.value;
+  }
 }
 
 export { printHtml };
