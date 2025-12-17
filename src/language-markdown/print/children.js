@@ -1,4 +1,5 @@
-import { hardline } from "../../document/index.js";
+import { htmlBlockNames, htmlRawNames } from "micromark-util-html-tag-name";
+import { hardline, line } from "../../document/index.js";
 import {
   INLINE_NODE_TYPES,
   INLINE_NODE_WRAPPER_TYPES,
@@ -26,7 +27,13 @@ function printChildren(path, options, print, events = {}) {
   path.each(() => {
     const result = processor(path);
     if (result !== false) {
-      if (parts.length > 0 && shouldPrePrintHardline(path)) {
+      if (parts.length === 0) {
+        parts.push(result);
+        return;
+      }
+      if (shouldPrePrintLine(path, options)) {
+        parts.push(line);
+      } else if (shouldPrePrintHardline(path)) {
         parts.push(hardline);
 
         if (
@@ -46,6 +53,27 @@ function printChildren(path, options, print, events = {}) {
   }, "children");
 
   return parts;
+}
+
+function shouldPrePrintLine(path, options) {
+  const { node, previous } = path;
+  if (options.parser === "mdx" || node.type !== "html") {
+    return false;
+  }
+
+  const tagName = node.value.match(/^<\/?([a-z0-9-]+)/i)?.[1].toLowerCase();
+  if (!tagName) {
+    return false;
+  }
+  if (previous?.type !== "paragraph") {
+    return false;
+  }
+  if (shouldPrePrintDoubleHardline(path, options)) {
+    return false;
+  }
+  return (
+    !htmlBlockNames.slice().includes(tagName) && !htmlRawNames.includes(tagName)
+  );
 }
 
 function shouldPrePrintHardline({ node, parent }) {
