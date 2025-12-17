@@ -28,6 +28,7 @@ import {
 } from "../utilities.js";
 import { printChildren } from "./children.js";
 import { printHeading } from "./heading.js";
+import { printHtml } from "./html.js";
 import { printList, printListLegacy } from "./list.js";
 import { printParagraph } from "./paragraph.js";
 import { printSentence } from "./sentence.js";
@@ -242,17 +243,8 @@ function printMdast(path, options, print) {
         style,
       ];
     }
-    case "html": {
-      const { parent, isLast } = path;
-      const value =
-        parent.type === "root" && isLast ? node.value.trimEnd() : node.value;
-      const isHtmlComment = /^<!--.*-->$/su.test(value);
-
-      return replaceEndOfLine(
-        value,
-        isHtmlComment ? hardline : markAsRoot(literalline),
-      );
-    }
+    case "html":
+      return printHtml(path);
     case "list":
       if (options.parser === "mdx") {
         return printListLegacy(path, options, print);
