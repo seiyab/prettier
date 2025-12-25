@@ -106,15 +106,12 @@ function shouldPrePrintDoubleHardline(path, options) {
       (node.type === "list" || !path.callParent(isLooseListItem));
   }
   const isPrevNodePrettierIgnore = isPrettierIgnore(previous) === "next";
+  const isBlockHtmlWithoutBlankLineBetweenPrevNode =
+    node.type === "html" &&
+    previous &&
+    previous.position.end.line + 1 === node.position.start.line;
   const isBlockHtmlWithoutBlankLineBetweenPrevHtml =
-    node.type === "html" &&
-    previous.type === "html" &&
-    previous.position.end.line + 1 === node.position.start.line;
-  const isBlockHtmlWithoutBlankLineBetweenPrevParagraph =
-    options.parser !== "mdx" &&
-    node.type === "html" &&
-    previous.type === "paragraph" &&
-    previous.position.end.line + 1 === node.position.start.line;
+    previous.type === "html" && isBlockHtmlWithoutBlankLineBetweenPrevNode;
   const isHtmlDirectAfterListItem =
     node.type === "html" &&
     parent.type === "listItem" &&
@@ -125,8 +122,9 @@ function shouldPrePrintDoubleHardline(path, options) {
     isSiblingNode ||
     isInTightListItem ||
     isPrevNodePrettierIgnore ||
-    isBlockHtmlWithoutBlankLineBetweenPrevHtml ||
-    isBlockHtmlWithoutBlankLineBetweenPrevParagraph ||
+    (options.parser === "mdx"
+      ? isBlockHtmlWithoutBlankLineBetweenPrevHtml
+      : isBlockHtmlWithoutBlankLineBetweenPrevNode) ||
     isHtmlDirectAfterListItem
   );
 }
